@@ -12,7 +12,6 @@ RUN npm install
 # Copy client source files
 COPY tsconfig*.json vite.config.ts index.html ./
 COPY src/ ./src/
-COPY public/ ./public/
 
 # Build static bundle
 RUN npm run build
