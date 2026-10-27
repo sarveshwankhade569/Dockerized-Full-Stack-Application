@@ -1,0 +1,61 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------- JOB 1: CI ----------
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env for testing
+        run: cp .env.example .env
+
+      - name: Validate compose file
+        run: docker compose config > /dev/null
+
+      - name: Build and start the stack
+        run: docker compose up --build -d
+
+      - name: Wait for API health check
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5000/api/health; then
+              echo "API is healthy"
+              exit 0
+            fi
+            echo "Waiting... ($i)"
+            sleep 3
+          done
+          docker compose logs
+          exit 1
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  # ---------- JOB 2: CD ----------
+  deploy:
+    needs: ci                                   # only after CI passes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2 over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/Dockerized-Full-Stack-Application
+            git pull origin main
+            docker compose up --build -d
+            docker image prune -f
+            sleep 10
+            curl -sf http://localhost:5000/api/health
