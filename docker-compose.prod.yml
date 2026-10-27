@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fullstack_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [app-network]
+    restart: unless-stopped
+
+  api:
+    image: ${DOCKERHUB_USERNAME}/fullstack-server:${IMAGE_TAG:-latest}
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    networks: [app-network]
+    restart: unless-stopped
+
+  client:
+    image: ${DOCKERHUB_USERNAME}/fullstack-client:${IMAGE_TAG:-latest}
+    depends_on:
+      - api
+    ports:
+      - "3000:80"        # copy the exact mapping from your existing docker-compose.yml
+    networks: [app-network]
+    restart: unless-stopped
+
+networks:
+  app-network:
+
+volumes:
+  pgdata:
