@@ -24,10 +24,10 @@ services:
       - app-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-fullstack_db}"]
-      interval: 5s
-      timeout: 5s
+      interval: 3s
+      timeout: 3s
       retries: 10
-      start_period: 15s
+      start_period: 10s
 
   # ==============================================================================
   # Backend API Service: Express Node.js Application
