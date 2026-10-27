@@ -44,7 +44,7 @@ jobs:
 
   deploy:
     needs: build-and-push
-    runs-on: [self-hosted, ec2]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout (for compose file and init.sql)
         uses: actions/checkout@v4
